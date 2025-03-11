@@ -1,6 +1,7 @@
 from flask import Flask, request, Response
 import json
 import base64
+import os
 
 app = Flask(__name__)
 
@@ -67,4 +68,5 @@ def add_to_wallet():
     return Response(auto_script, mimetype='text/html')
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=False)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
