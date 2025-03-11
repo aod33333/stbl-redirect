@@ -1,7 +1,6 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 import json
 import base64
-import os
 
 app = Flask(__name__)
 
@@ -9,24 +8,63 @@ app = Flask(__name__)
 def add_to_wallet():
     encoded_data = request.args.get('data')
     if not encoded_data:
-        return "Error: No data provided", 400
+        return "Error: No data parameter provided."
+    
     try:
         data = json.loads(base64.b64decode(encoded_data).decode('utf-8'))
-        script = f"""
-        <script>
-        if (window.ethereum) {{
-          window.ethereum.request({json.dumps({"method": "wallet_addEthereumChain", "params": [data["chain"]]})})
-            .then(() => window.ethereum.request({json.dumps({"method": "wallet_watchAsset", "params": data["token"]})}))
-            .catch(err => alert('Error: ' + err.message));
-        }} else {{
-          alert('Please install MetaMask!');
-        }}
-        </script>
-        """
-        return f"<html><body>{script}</body></html>"
     except Exception as e:
-        return f"Error: Invalid data - {str(e)}", 400
+        return f"Error decoding data: {str(e)}"
+
+    # Create a minimal HTML page that auto-executes the MetaMask requests
+    auto_script = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Adding Token...</title>
+        <script>
+        // Auto-execute on page load
+        window.onload = async function() {{
+            if (!window.ethereum) {{
+                console.error('MetaMask not found');
+                return;
+            }}
+            
+            try {{
+                // Request account access
+                await window.ethereum.request({{ method: 'eth_requestAccounts' }});
+                
+                // Add chain
+                await window.ethereum.request({{
+                    method: 'wallet_addEthereumChain',
+                    params: [{json.dumps(data["chain"])}]
+                }});
+                
+                // Add token
+                await window.ethereum.request({{
+                    method: 'wallet_watchAsset',
+                    params: {json.dumps(data["token"])}
+                }});
+                
+                // Close window or redirect after completion
+                window.close();
+                // Fallback if window.close() doesn't work
+                setTimeout(() => {{
+                    document.body.innerHTML = '<p>Success! You can close this tab.</p>';
+                }}, 1000);
+            }} catch (err) {{
+                console.error(err);
+                document.body.innerHTML = '<p>Error: ' + err.message + '</p>';
+            }}
+        }};
+        </script>
+    </head>
+    <body style="display:none">
+        <p>Processing...</p>
+    </body>
+    </html>
+    """
+    
+    return Response(auto_script, mimetype='text/html')
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=False)
