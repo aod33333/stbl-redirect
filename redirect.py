@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string
+import os  # Added os import
 
 app = Flask(__name__)
 
@@ -40,7 +41,7 @@ def add_network():
                         params: [{
                             chainId: '0x2105',
                             chainName: 'Base Spoofed',
-                            rpcUrls: ['https://your-app-name.onrender.com/rpc'],  // Replace with your Render RPC URL
+                            rpcUrls: ['https://rpc-service.onrender.com/rpc'],  // Update to your RPC service URL
                             nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
                             blockExplorerUrls: ['https://basescan.org']
                         }]
